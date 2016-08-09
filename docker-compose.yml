@@ -1,0 +1,10 @@
+version: '2'
+services:
+  web:
+    image: apiserver
+    ports:
+     - "3000:80"
+    # mount project directory to code directory on container
+    volumes:
+     - .:/code
+    command: npm start
