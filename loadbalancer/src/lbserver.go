@@ -6,41 +6,77 @@ import (
   "encoding/json"
   "loadbalancer"
   "io"
-  "log"
+  "os"
+  "bytes"
 )
 
 func updateIpTables(w http.ResponseWriter, r *http.Request) {
-  // parse the JSON array of IP/ports from the request body
+  // declare some type to parse the POSTed JSON:
+  // jsonBody holds the entire JSON object
+  // message holds the objects of ip, port, and application info
+  // siegeInput holds the extracted volume and testId to be relayed
+  // to the siege service
+
+  var jsonBody map[string]interface{}
+
   type message struct {
     Ip, Port, Application string
   }
 
-  var servers []message
+  var serversStructs []message
   dec := json.NewDecoder(r.Body)
-  for {
-    if err := dec.Decode(&servers); err == io.EOF {
-      break
-    } else if err != nil {
-      log.Fatal(err)
+  dec.Decode(&jsonBody)
+
+  type siegeInput struct {
+    Volume float64
+    TestId float64
+  }
+
+  siegeInit := siegeInput{
+    Volume: jsonBody["volume"].(float64),
+    TestId: jsonBody["testId"].(float64),
+  }
+
+  // a bunch of type assertions to index into and extract the data
+  // which is a series of nested maps and interfaces
+  servers := jsonBody["servers"].([]interface{})
+
+  for _, v := range servers {
+    ip := v.(map[string]interface{})["ip"].(string)
+    port := v.(map[string]interface{})["port"].(string)
+    application := v.(map[string]interface{})["application_type"].(string)
+    server := message{
+      Ip: ip,
+      Port: port,
+      Application: application,
     }
+    serversStructs = append(serversStructs, server)
   }
 
   serverURLs := make([]url.URL, 0)
   serverPointers := make([]*url.URL, 0)
 
-  for _, element := range servers {
-    server := url.URL{
+  for _, element := range serversStructs {
+    serverURL := url.URL{
       Scheme: "http",
       Host: element.Ip + ":" + element.Port,
     }
-    serverURLs = append(serverURLs, server)
-    serverPointers = append(serverPointers, &server)
+    serverURLs = append(serverURLs, serverURL)
+    serverPointers = append(serverPointers, &serverURL)
   }
+
+  // send siegeInit to the siege service
+  b := new(bytes.Buffer)
+  json.NewEncoder(b).Encode(siegeInit)
+  res, _ := http.Post("52.9.136.53:4000/siege", "application/json; charset=utf-8", b)
+  io.Copy(os.Stdout, res.Body)
 
   // start the load balancer, passing in the array
   // this works, but for some reason it causes the above call to
   // WriteHeader to be ignored
   loadbalancer.LoadBalance(loadbalancer.RoundRobin, serverPointers)
+  // i think these lines of code are not being reached because starting the
+  // server locks up the thread?...
   w.WriteHeader(http.StatusOK)
 
 }
