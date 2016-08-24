@@ -151,8 +151,10 @@ func GetHealth(servers[]*url.URL, serverHealths[]*ServerHealth, serverHealthsPtr
           dec := json.NewDecoder(r.Body)
           r.Body.Close()
           dec.Decode(&jsonBody)
+          log.Println("2 attempting type assetion")
           serverHealth.Cpu = jsonBody["cpu"].(float64)
           serverHealth.Mem = jsonBody["memory"].(float64)
+          log.Println("3 type assetion succesful")
 
           // update server to unavailable if status code doesn't begin with 2
           // send a request to the server rather than the health service, since

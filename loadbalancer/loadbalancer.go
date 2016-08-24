@@ -4,7 +4,7 @@ import (
   "net/http"
   "net/http/httputil"
   "net/url"
-  // "log"
+  "log"
   "reflect"
   "runtime"
   "github.com/aebrow4/unloadx-lb/util"
@@ -52,11 +52,13 @@ func LoadBalance(fn strategy, servers[]*url.URL, duration int, testId int) {
 
   // if strategy is health, poll servers for their health
   if runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name() == "github.com/aebrow4/unloadx-lb/loadbalancer.Health" {
+    log.Println("1 calling getHealth")
     serverHealthsPtrs = lbutil.GetHealth(servers, serverHealths[0:], serverHealthsPtrs[0:], duration, testId);
   }
 
   // this is what causes the response to the POST to not register....
   proxy := fn(servers, serverHealthsPtrs)
+  log.Println("4 calling ListenAndServe")
   http.ListenAndServe(":9090", proxy)
   return
 }
