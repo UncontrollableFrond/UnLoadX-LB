@@ -149,6 +149,7 @@ func GetHealth(servers[]*url.URL, serverHealths[]*ServerHealth, serverHealthsPtr
           }
           var jsonBody map[string]interface{}
           dec := json.NewDecoder(r.Body)
+          r.Body.Close()
           dec.Decode(&jsonBody)
           serverHealth.Cpu = jsonBody["cpu"].(float64)
           serverHealth.Mem = jsonBody["memory"].(float64)
@@ -258,11 +259,13 @@ func CheckServerHealthAvail(server Message) bool {
   client := http.Client{
       Timeout: timeout,
   }
-  _, err := client.Get("http://" + server.Ip + ":5000")
+  r, err := client.Get("http://" + server.Ip + ":5000")
   if err != nil {
     log.Println("Health not available for ", server.Ip)
+    r.Body.Close()
     return false
   }
   log.Println("Got health")
+  r.Body.Close()
   return true
 }
