@@ -240,6 +240,7 @@ func CalcAvgHealth(duration int, serverHealthsPtrs[]*ServerHealth, testId int) {
   return
 }
 
+
 // takes in a server IP and port and returns T/F if it can be reached
 func CheckServerAvail(server Message) bool {
   timeout := time.Duration(3 * time.Second)
