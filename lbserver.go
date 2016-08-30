@@ -77,6 +77,8 @@ func updateIpTables(w http.ResponseWriter, r *http.Request) {
     log.Println("responding to form submission post")
     w.Write(buf)
     log.Println("Responded to form POST. Starting loadbalancer...")
+    log.Println("here is duration", duration)
+    log.Println("here is testId", testId)
     defer loadbalancer.LoadBalance(loadbalancer.Health, serverPointers, duration, testId)
     return
   }

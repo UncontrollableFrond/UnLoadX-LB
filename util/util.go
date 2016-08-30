@@ -150,8 +150,11 @@ func GetHealth(servers[]*url.URL, serverHealths[]*ServerHealth, serverHealthsPtr
           var jsonBody map[string]interface{}
           dec := json.NewDecoder(r.Body)
           dec.Decode(&jsonBody)
+          log.Println("2 attempting type assetion")
           serverHealth.Cpu = jsonBody["cpu"].(float64)
           serverHealth.Mem = jsonBody["memory"].(float64)
+          log.Println("3 type assetion succesful")
+          r.Body.Close()
 
           // update server to unavailable if status code doesn't begin with 2
           // send a request to the server rather than the health service, since
@@ -237,6 +240,7 @@ func CalcAvgHealth(duration int, serverHealthsPtrs[]*ServerHealth, testId int) {
   return
 }
 
+
 // takes in a server IP and port and returns T/F if it can be reached
 func CheckServerAvail(server Message) bool {
   timeout := time.Duration(3 * time.Second)
@@ -258,11 +262,13 @@ func CheckServerHealthAvail(server Message) bool {
   client := http.Client{
       Timeout: timeout,
   }
-  _, err := client.Get("http://" + server.Ip + ":5000")
+  r, err := client.Get("http://" + server.Ip + ":5000")
   if err != nil {
     log.Println("Health not available for ", server.Ip)
+    r.Body.Close()
     return false
   }
   log.Println("Got health")
+  r.Body.Close()
   return true
 }
